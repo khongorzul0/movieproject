@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Cinema Vault - Хянах самбар</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <header class="topbar">
+    <h1 class="logo">🎬 My Cinema Vault</h1>
+    <div class="topbar-right">
+      <span id="userEmail" class="user-email"></span>
+      <button id="logoutBtn" class="btn btn-secondary">Гарах</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- ================= КИНО НЭМЭХ ХЭСЭГ ================= -->
+    <section class="card form-card">
+      <h2>Шинэ кино нэмэх</h2>
+      <div id="addMovieMessage" class="message" style="display:none;"></div>
+
+      <form id="addMovieForm" class="movie-form">
+        <div class="form-group">
+          <label for="movieTitle">Киноны нэр *</label>
+          <input type="text" id="movieTitle" placeholder="Жишээ: Interstellar" required />
+        </div>
+
+        <div class="form-group">
+          <label for="posterUrl">Постер зургийн URL холбоос *</label>
+          <input type="url" id="posterUrl" placeholder="https://..." required />
+        </div>
+
+        <div class="form-group">
+          <label for="movieRating">Үнэлгээ (1-10)</label>
+          <input type="number" id="movieRating" min="1" max="10" step="0.1" placeholder="8.5" />
+        </div>
+
+        <div class="form-group">
+          <label for="movieReview">Сэтгэгдэл</label>
+          <textarea id="movieReview" rows="3" placeholder="Энэ киноны талаарх бодлоо бичнэ үү..."></textarea>
+        </div>
+
+        <!-- Постерийн урьдчилсан харагдац -->
+        <div class="poster-preview-wrap">
+          <img id="posterPreview" class="poster-preview" alt="Постер урьдчилан харах" style="display:none;" />
+        </div>
+
+        <button type="submit" id="addMovieBtn" class="btn btn-primary">Кино нэмэх</button>
+      </form>
+    </section>
+
+    <!-- ================= КИНОНЫ ЖАГСААЛТ (дараагийн шатанд хийгдэнэ) ================= -->
+    <section class="card list-card">
+      <h2>Миний кинонууд</h2>
+      <div id="moviesGrid" class="movies-grid">
+        <!-- Кино картууд энд JS-ээр нэмэгдэнэ -->
+      </div>
+    </section>
+  </main>
+
+  <script src="js/supabase.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
