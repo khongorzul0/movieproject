@@ -11,8 +11,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const { data, error } = await supabaseClient.auth.getUser();
 
   if (error || !data?.user) {
-    // index.html (нэвтрэх хуудас) хараахан бэлэн болоогүй үед энэ мөр алдаа өгч болзошгүй,
-    // auth.js бэлэн болмогц идэвхжинэ
     window.location.href = "index.html";
     return;
   }

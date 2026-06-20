@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Cinema Vault - Нэвтрэх</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="auth-wrap">
+    <div class="card auth-card">
+      <h1 class="logo" style="margin-bottom: 20px;">🎬 My Cinema Vault</h1>
+
+      <div id="authMessage" class="message" style="display:none;"></div>
+
+      <!-- ================= НЭВТРЭХ ФОРМ ================= -->
+      <form id="loginForm" class="movie-form">
+        <div class="form-group">
+          <label for="loginEmail">И-мэйл</label>
+          <input type="email" id="loginEmail" placeholder="you@example.com" required />
+        </div>
+        <div class="form-group">
+          <label for="loginPassword">Нууц үг</label>
+          <input type="password" id="loginPassword" placeholder="••••••••" required />
+        </div>
+        <button type="submit" id="loginBtn" class="btn btn-primary" style="width:100%;">Нэвтрэх</button>
+      </form>
+
+      <!-- ================= БҮРТГҮҮЛЭХ ФОРМ ================= -->
+      <form id="registerForm" class="movie-form" style="display:none;">
+        <div class="form-group">
+          <label for="registerEmail">И-мэйл</label>
+          <input type="email" id="registerEmail" placeholder="you@example.com" required />
+        </div>
+        <div class="form-group">
+          <label for="registerPassword">Нууц үг</label>
+          <input type="password" id="registerPassword" placeholder="Хамгийн багадаа 6 тэмдэгт" minlength="6" required />
+        </div>
+        <button type="submit" id="registerBtn" class="btn btn-primary" style="width:100%;">Бүртгүүлэх</button>
+      </form>
+
+      <p class="auth-switch">
+        <span id="showRegister">Шинэ хэрэглэгч үү? <a>Бүртгүүлэх</a></span>
+        <span id="showLogin" style="display:none;">Бүртгэлтэй юу? <a>Нэвтрэх</a></span>
+      </p>
+    </div>
+  </div>
+
+  <script src="js/supabase.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+</html>
