@@ -18,6 +18,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   currentUser = data.user;
   const emailEl = document.getElementById("userEmail");
   if (emailEl) emailEl.textContent = currentUser.email;
+
+  await loadMovies();
 });
 
 // -------- Гарах товч --------
@@ -98,7 +100,85 @@ if (addMovieForm) {
     addMovieForm.reset();
     posterPreview.style.display = "none";
 
-    // Жагсаалтыг дараагийн шатанд шинэчилж харуулах функц энд дуудагдана
-    // await loadMovies();
+    await loadMovies();
   });
+}
+
+// ==============================
+// Киноны жагсаалтыг картаар харуулах
+// ==============================
+
+const moviesGrid = document.getElementById("moviesGrid");
+
+/**
+ * Нэвтэрсэн хэрэглэгчийн бүх киног Supabase-ээс татаж, картаар харуулна
+ */
+async function loadMovies() {
+  if (!moviesGrid || !currentUser) return;
+
+  moviesGrid.innerHTML = `<p class="loading-text">Ачааллаж байна...</p>`;
+
+  const { data, error } = await supabaseClient
+    .from("movies")
+    .select("*")
+    .eq("user_id", currentUser.id)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    moviesGrid.innerHTML = "";
+    showMessage("addMovieMessage", "Жагсаалт татахад алдаа гарлаа: " + error.message, "error");
+    return;
+  }
+
+  renderMovies(data);
+}
+
+/**
+ * Киноны массивыг картуудад буулгаж DOM-д зурна
+ * @param {Array} movies
+ */
+function renderMovies(movies) {
+  if (!moviesGrid) return;
+
+  if (!movies || movies.length === 0) {
+    moviesGrid.innerHTML = `<p class="empty-text">Одоогоор кино нэмэгдээгүй байна. Дээрх форм ашиглан эхний киногоо нэмнэ үү.</p>`;
+    return;
+  }
+
+  moviesGrid.innerHTML = movies.map((movie) => renderMovieCard(movie)).join("");
+}
+
+/**
+ * Нэг киноны картын HTML-ийг үүсгэнэ
+ * @param {Object} movie
+ */
+function renderMovieCard(movie) {
+  const rating = movie.rating != null ? `⭐ ${movie.rating}/10` : "Үнэлгээгүй";
+  const review = movie.review ? escapeHtml(movie.review) : "Сэтгэгдэл алга";
+
+  return `
+    <div class="movie-card" data-id="${movie.id}">
+      <img src="${escapeHtml(movie.poster_url)}" alt="${escapeHtml(movie.title)}" onerror="this.src='https://via.placeholder.com/180x240?text=No+Image'" />
+      <div class="movie-card-body">
+        <div class="movie-card-title">${escapeHtml(movie.title)}</div>
+        <div class="movie-card-rating">${rating}</div>
+        <div class="movie-card-review">${review}</div>
+      </div>
+      <div class="movie-card-actions">
+        <button class="btn btn-secondary" disabled title="Дараагийн шатанд идэвхжинэ">Засах</button>
+        <button class="btn btn-danger" disabled title="Дараагийн шатанд идэвхжинэ">Устгах</button>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * HTML тусгай тэмдэгтүүдээс аюулгүй болгож escape хийх (XSS-ээс сэргийлнэ)
+ * @param {string} str
+ */
+function escapeHtml(str) {
+  if (!str) return "";
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
 }

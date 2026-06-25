@@ -173,6 +173,13 @@ body {
   gap: 18px;
 }
 
+.loading-text,
+.empty-text {
+  color: #777;
+  font-size: 0.9rem;
+  grid-column: 1 / -1;
+}
+
 .movie-card {
   background-color: #fafafa;
   border-radius: 10px;
