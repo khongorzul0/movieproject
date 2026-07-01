@@ -1,7 +1,5 @@
 // ==============================
 // dashboard.js
-// Одоогийн шат: Кино нэмэх (мэдээлэл + постер зураг)
-// Дараагийн шатанд: жагсаалт харуулах, засах, устгах функцууд нэмэгдэнэ
 // ==============================
 
 let currentUser = null;
@@ -63,7 +61,6 @@ if (addMovieForm) {
     const review = document.getElementById("movieReview").value.trim();
     const submitBtn = document.getElementById("addMovieBtn");
 
-    // -------- Оролтын шалгалт --------
     if (!title || !posterUrl) {
       showMessage("addMovieMessage", "Киноны нэр болон постер зургийн URL заавал шаардлагатай.", "error");
       return;
@@ -110,9 +107,9 @@ if (addMovieForm) {
 
 const moviesGrid = document.getElementById("moviesGrid");
 
-/**
- * Нэвтэрсэн хэрэглэгчийн бүх киног Supabase-ээс татаж, картаар харуулна
- */
+// title-ийг түр хадгалах — засах/устгахад ашиглана
+let currentMovies = [];
+
 async function loadMovies() {
   if (!moviesGrid || !currentUser) return;
 
@@ -130,13 +127,10 @@ async function loadMovies() {
     return;
   }
 
-  renderMovies(data);
+  currentMovies = data || [];
+  renderMovies(currentMovies);
 }
 
-/**
- * Киноны массивыг картуудад буулгаж DOM-д зурна
- * @param {Array} movies
- */
 function renderMovies(movies) {
   if (!moviesGrid) return;
 
@@ -148,37 +142,180 @@ function renderMovies(movies) {
   moviesGrid.innerHTML = movies.map((movie) => renderMovieCard(movie)).join("");
 }
 
-/**
- * Нэг киноны картын HTML-ийг үүсгэнэ
- * @param {Object} movie
- */
 function renderMovieCard(movie) {
   const rating = movie.rating != null ? `⭐ ${movie.rating}/10` : "Үнэлгээгүй";
   const review = movie.review ? escapeHtml(movie.review) : "Сэтгэгдэл алга";
+  // data-id-д title ашиглана (id багана байхгүй тул)
+  const safeTitle = encodeURIComponent(movie.title);
 
   return `
-    <div class="movie-card" data-id="${movie.id}">
+    <div class="movie-card" data-id="${safeTitle}">
       <img src="${escapeHtml(movie.poster_url)}" alt="${escapeHtml(movie.title)}" onerror="this.src='https://via.placeholder.com/180x240?text=No+Image'" />
       <div class="movie-card-body">
         <div class="movie-card-title">${escapeHtml(movie.title)}</div>
-        <div class="movie-card-rating">${rating}</div>
-        <div class="movie-card-review">${review}</div>
+        <div class="movie-card-static" data-field="static">
+          <div class="movie-card-rating">${rating}</div>
+          <div class="movie-card-review">${review}</div>
+        </div>
       </div>
-      <div class="movie-card-actions">
-        <button class="btn btn-secondary" disabled title="Дараагийн шатанд идэвхжинэ">Засах</button>
-        <button class="btn btn-danger" disabled title="Дараагийн шатанд идэвхжинэ">Устгах</button>
+      <div class="movie-card-actions" data-field="actions">
+        <button class="btn btn-secondary edit-btn" data-id="${safeTitle}">Засах</button>
+        <button class="btn btn-danger delete-btn" data-id="${safeTitle}">Устгах</button>
       </div>
     </div>
   `;
 }
 
-/**
- * HTML тусгай тэмдэгтүүдээс аюулгүй болгож escape хийх (XSS-ээс сэргийлнэ)
- * @param {string} str
- */
+function renderEditForm(movie) {
+  return `
+    <div class="form-group">
+      <label>Үнэлгээ (1-10)</label>
+      <input type="number" class="edit-rating-input" min="1" max="10" step="0.1" value="${movie.rating ?? ""}" />
+    </div>
+    <div class="form-group">
+      <label>Сэтгэгдэл</label>
+      <textarea class="edit-review-input" rows="3">${movie.review ? escapeHtml(movie.review) : ""}</textarea>
+    </div>
+  `;
+}
+
 function escapeHtml(str) {
   if (!str) return "";
   const div = document.createElement("div");
   div.textContent = str;
   return div.innerHTML;
+}
+
+// ==============================
+// Засах / Устгах товчны логик
+// ==============================
+
+if (moviesGrid) {
+  moviesGrid.addEventListener("click", async (e) => {
+    const editBtn = e.target.closest(".edit-btn");
+    const deleteBtn = e.target.closest(".delete-btn");
+    const saveBtn = e.target.closest(".save-edit-btn");
+    const cancelBtn = e.target.closest(".cancel-edit-btn");
+
+    if (editBtn) {
+      enterEditMode(editBtn.dataset.id);
+      return;
+    }
+
+    if (cancelBtn) {
+      exitEditMode(cancelBtn.dataset.id);
+      return;
+    }
+
+    if (saveBtn) {
+      await saveEdit(saveBtn.dataset.id);
+      return;
+    }
+
+    if (deleteBtn) {
+      await deleteMovie(deleteBtn.dataset.id);
+      return;
+    }
+  });
+}
+
+function enterEditMode(movieId) {
+  const movie = currentMovies.find((m) => encodeURIComponent(m.title) === movieId);
+  const cardEl = moviesGrid.querySelector(`.movie-card[data-id="${movieId}"]`);
+  if (!movie || !cardEl) return;
+
+  const staticEl = cardEl.querySelector('[data-field="static"]');
+  const actionsEl = cardEl.querySelector('[data-field="actions"]');
+
+  staticEl.innerHTML = renderEditForm(movie);
+  actionsEl.innerHTML = `
+    <button class="btn btn-primary save-edit-btn" data-id="${movieId}">Хадгалах</button>
+    <button class="btn btn-secondary cancel-edit-btn" data-id="${movieId}">Цуцлах</button>
+  `;
+}
+
+function exitEditMode(movieId) {
+  const movie = currentMovies.find((m) => encodeURIComponent(m.title) === movieId);
+  const cardEl = moviesGrid.querySelector(`.movie-card[data-id="${movieId}"]`);
+  if (!movie || !cardEl) return;
+
+  const rating = movie.rating != null ? `⭐ ${movie.rating}/10` : "Үнэлгээгүй";
+  const review = movie.review ? escapeHtml(movie.review) : "Сэтгэгдэл алга";
+
+  cardEl.querySelector('[data-field="static"]').innerHTML = `
+    <div class="movie-card-rating">${rating}</div>
+    <div class="movie-card-review">${review}</div>
+  `;
+  cardEl.querySelector('[data-field="actions"]').innerHTML = `
+    <button class="btn btn-secondary edit-btn" data-id="${movieId}">Засах</button>
+    <button class="btn btn-danger delete-btn" data-id="${movieId}">Устгах</button>
+  `;
+}
+
+/**
+ * Засварыг Supabase рүү илгээж хадгална
+ * id багана байхгүй тул user_id + title-аар filter хийнэ
+ */
+async function saveEdit(movieId) {
+  const cardEl = moviesGrid.querySelector(`.movie-card[data-id="${movieId}"]`);
+  if (!cardEl) return;
+
+  const movie = currentMovies.find((m) => encodeURIComponent(m.title) === movieId);
+  if (!movie) return;
+
+  const ratingRaw = cardEl.querySelector(".edit-rating-input").value;
+  const review = cardEl.querySelector(".edit-review-input").value.trim();
+  const saveBtn = cardEl.querySelector(".save-edit-btn");
+
+  if (ratingRaw && !isValidRating(ratingRaw)) {
+    alert("Үнэлгээ 1-10 хооронд байх ёстой.");
+    return;
+  }
+
+  setButtonLoading(saveBtn, true, "Хадгалж байна...");
+
+  // id-ийн оронд user_id + title-аар filter
+  const { error } = await supabaseClient
+    .from("movies")
+    .update({
+      rating: ratingRaw ? Number(ratingRaw) : null,
+      review: review || null,
+    })
+    .eq("user_id", currentUser.id)
+    .eq("title", movie.title);
+
+  setButtonLoading(saveBtn, false);
+
+  if (error) {
+    alert("Засварыг хадгалахад алдаа гарлаа: " + error.message);
+    return;
+  }
+
+  await loadMovies();
+}
+
+/**
+ * Кино устгах
+ * id-ийн оронд user_id + title-аар filter хийнэ
+ */
+async function deleteMovie(movieId) {
+  const movie = currentMovies.find((m) => encodeURIComponent(m.title) === movieId);
+  const title = movie ? movie.title : "энэ кино";
+
+  const confirmed = confirm(`"${title}"-г устгахдаа итгэлтэй байна уу?`);
+  if (!confirmed) return;
+
+  // id-ийн оронд user_id + title-аар filter
+  const { error } = await supabaseClient
+    .from("movies")
+    .delete()
+    .eq("user_id", currentUser.id)
+    .eq("title", movie.title);
+
+  if (error) {
+    alert("Устгахад алдаа гарлаа: " + error.message);
+    return;
+  }
+
+  await loadMovies();
 }
